@@ -61,6 +61,7 @@ type ChatBot struct {
 	//Channel channel;
 	//CancellationTokenSource cancellationTokenSource;
 	//Queue<ClientMsg> sendMsgQueue;
+
 	BotResponse             IBotResponse
 	Client                  pbx.Node_MessageLoopClient
 	Cl2                     pbx.NodeClient
@@ -93,6 +94,19 @@ func (c *ChatBot) SendMessageLoop(ctx context.Context) {
 		err := c.Client.SendMsg(msg)
 		//err := c.Client.RecvMsg(msg)
 
+		if err != nil {
+			log.Printf("Send Message Error: %v, Failed message will be put back to queue...\n", err)
+			c.SendMsgQueue[0] = msg
+			time.Sleep(1 * time.Second)
+		}
+	} else {
+		time.Sleep(10 * time.Millisecond)
+	}
+	if len(c.SendMsgQueue) > 0 {
+		msg := c.SendMsgQueue[0]
+		c.SendMsgQueue = c.SendMsgQueue[1:]
+
+		err := c.Client.SendMsg(msg)
 		if err != nil {
 			log.Printf("Send Message Error: %v, Failed message will be put back to queue...\n", err)
 			c.SendMsgQueue[0] = msg
@@ -292,10 +306,11 @@ func (c *ChatBot) ClientReset() {
 }
 func (c *ChatBot) Start() {
 	fmt.Println("init Server")
-	c.Server = c.InitServer()
-
-	c.Client = c.InitClient()
 	ctx, _ := context.WithCancel(context.Background())
+	//c.Server = c.InitServer()
+	c.Client = c.InitClient(ctx)
+	//go c.InitClient(ctx)
+
 	c.SendMessageLoop(context.Background())
 	err := c.ClientMessageLoop(ctx)
 	if err != nil {
@@ -306,40 +321,14 @@ func (c *ChatBot) Start() {
 					c.Log("Connection Broken", fmt.Sprintf("Connection Closed: %s", err))
 					time.Sleep(2 * time.Second)
 					c.ClientReset()
-					c.Client = c.InitClient()
+					c.Client = c.InitClient(ctx)
 				default:
 
 				}
 			}
 		}()
 	}
-	//go func() {
-	//	for {
-	//		select {
-	//		case <-ctx.Done():
-	//			// контекст был отменен, выходим из цикла
-	//			return
-	//
-	//		default:
-	//			err := c.ClientMessageLoop(ctx)
-	//			if err != nil {
-	//				go func() {
-	//					for {
-	//						select {
-	//						case <-c.DisconnectedEvent:
-	//							c.Log("Connection Broken", fmt.Sprintf("Connection Closed: %s", err))
-	//							time.Sleep(2 * time.Second)
-	//							c.ClientReset()
-	//							c.Client = c.InitClient()
-	//						default:
-	//
-	//						}
-	//					}
-	//				}()
-	//			}
-	//		}
-	//	}
-	//}()
+
 }
 
 //ClientMessageLoop  остановился на этой функции
@@ -370,10 +359,12 @@ func (c *ChatBot) ClientMessageLoop(ctx context.Context) error {
 				if err == io.EOF {
 					break
 				}
+
 				if err != nil {
 					log.Fatalf("Error while receiving server response: %v", err)
 				}
 				//fmt.Println(response.GetData(), c.Data)
+				//fmt.Println("c.GetData: ", c.GetData())
 				fmt.Println(response.GetData(), " ", response.GetPres())
 
 				if response.GetCtrl() != nil {
@@ -413,11 +404,12 @@ func (c *ChatBot) ClientMessageLoop(ctx context.Context) error {
 								}
 							}
 						}
-						c.OnServerPresEvent(c.ServerPresEventArgs.ServerPresEventArgs(response.GetPres()))
 
 					}
+					c.OnServerPresEvent(c.ServerPresEventArgs.ServerPresEventArgs(response.GetPres()))
+
 				} else if response.GetMeta() != nil {
-					//c.OnServerMetaEvent(c.ServerMetaEventArgs.ServerMetaEventArgs(response.GetMeta()))
+					c.OnServerMetaEvent(c.ServerMetaEventArgs.ServerMetaEventArgs(response.GetMeta()))
 				}
 			}
 		}
@@ -568,16 +560,10 @@ func (c *ChatBotPlugin) Account(ctx context.Context, request *pbx.AccountEvent) 
 	return &pbx.Unused{}, nil
 }
 func (c *ChatBot) InitServer() *grpc.Server {
-	server := grpc.NewServer()
+	c.Server = grpc.NewServer()
 	chatBotPlugin := &ChatBotPlugin{}
-	//server.RegisterService(&grpc.ServiceDesc{
-	//	ServiceName: "server",
-	//	HandlerType: nil,
-	//	Methods:     nil,
-	//	Streams:     nil,
-	//	Metadata:    nil,
-	//}, chatBotPlugin.PluginServer)
-	pbx.RegisterPluginServer(server, chatBotPlugin.PluginServer)
+
+	pbx.RegisterPluginServer(c.Server, chatBotPlugin.PluginServer)
 
 	listenHost := strings.Split(c.Listen, ":")[0]
 	listenPort, err := strconv.Atoi(strings.Split(c.Listen, ":")[1])
@@ -588,28 +574,26 @@ func (c *ChatBot) InitServer() *grpc.Server {
 	if err != nil {
 		panic(err)
 	}
+	//wg := new(sync.WaitGroup)
+	//wg.Add(1)
+	//go func() {
+	//	err = c.Server.Serve(lis)
+	//	wg.Done()
+	//}()
 	go func() {
-		err = server.Serve(lis)
+		if err := c.Server.Serve(lis); err != nil {
+			log.Fatalf("failed to serve: %v", err)
+		}
+		log.Println("Server connect c")
 	}()
-	//err = server.Serve(lis)
+	//err = c.Server.Serve(lis)
 	if err != nil {
 		panic(err)
 	}
-	//server.Stop()
-	//pbx.RegisterPluginServer(server, pbx.PluginServer(chatBotPlugin))
-	//listenHost := strings.Split(c.Listen, ":")[0]
-	//listenPort, err := strconv.Atoi(strings.Split(c.Listen, ":")[1])
-	//lis, err := net.Listen("tcp", fmt.Sprintf("%s:%d", listenHost, listenPort))
-	//if err != nil {
-	//	panic(err)
-	//}
-	//
-	//if err := server.Serve(lis); err != nil {
-	//	panic(err)
-	//}
-	return server
+
+	return c.Server
 }
-func (c *ChatBot) InitClient() pbx.Node_MessageLoopClient {
+func (c *ChatBot) InitClient(ctx context.Context) pbx.Node_MessageLoopClient {
 	// ping / 2s and timeout 2s
 	options := []grpc.DialOption{
 		grpc.WithInsecure(),
@@ -621,19 +605,39 @@ func (c *ChatBot) InitClient() pbx.Node_MessageLoopClient {
 			},
 		),
 	}
+	//options := []grpc.CallOption{}
 
+	//if err != nil {
+	//	go func() {
+	//		for {
+	//			select {
+	//			case <-c.DisconnectedEvent:
+	//				c.Log("Connection Broken", fmt.Sprintf("Connection Closed: %s", err))
+	//				time.Sleep(2 * time.Second)
+	//				c.ClientReset()
+	//				c.Client = c.InitClient()
+	//			default:
+	//
+	//			}
+	//		}
+	//	}()
+	//}
+	//
 	conn, err := grpc.Dial(c.ServerHost, options...)
 	if err != nil {
 		log.Fatalf("Failed to connect: %v", err)
 	}
+
 	client := pbx.NewNodeClient(conn)
 	stream, err := client.MessageLoop(context.Background())
 	if err != nil {
 		log.Fatalf("Failed to open stream: %v", err)
 	}
+
 	c.ClientPost(c.Hello())
 	c.ClientPost(c.Login(c.CookieFile, c.Schema, c.Secret))
 	c.ClientPost(c.Subscribe("me"))
+	c.Client = stream
 	return stream
 }
 func (c *ChatBot) Stop() {

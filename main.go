@@ -3,6 +3,8 @@ package main
 import (
 	"csToGo25042023/CSbotToGo"
 	"fmt"
+	"golang.org/x/net/context"
+	"time"
 )
 
 type UserInfo struct {
@@ -72,7 +74,7 @@ func main() {
 
 	var o CmdOptions
 	o.Host = "localhost:16060"
-	o.Listen = "0.0.0.0:40052"
+	o.Listen = "0.0.0.0:40051"
 	o.Basic = "alice:alice123"
 	if o.Host != "" {
 		host = o.Host
@@ -118,68 +120,34 @@ func main() {
 	var b CSbotToGo.BotResponse
 	b.BotResponse(bot)
 	bot.BotResponse = b.IBotResponse
-	bot.Start()
+	ctx, _ := context.WithCancel(context.Background())
+	//bot.Start()
+	go func() {
+		bot.Client = bot.InitClient(ctx)
+	}()
+	//bot.Client = bot.InitClient(ctx)
 
-	//// Создание экземпляра ChatBot
-	//switch {
-	//case schemaArg == "token":
-	//	var token []byte
-	//	_, _, err := ascii85.Decode(token, []byte(secretArg), false)
-	//	if err != nil {
-	//		fmt.Println("Failed to decode token.")
-	//		return
-	//	}
-	//	fmt.Printf("Login in with token %s\n", secretArg)
-	//	bot.Chatbot(host, listen, cookieFile, schemaArg, secretArg, bot.BotResponse)
-	//case schemaArg == "basic":
-	//	fmt.Printf("Login in with login:password %s\n", secretArg)
-	//	bot.Chatbot(host, listen, cookieFile, schemaArg, secretArg, bot.BotResponse)
-	//default:
-	//	if cookieFile == "" {
-	//		fmt.Println("No authentication credentials provided.")
-	//		return
-	//	}
-	//	fmt.Printf("Login in with cookie file %s\n", cookieFile)
-	//	bot.Chatbot(host, listen, cookieFile, "", "", nil)
-	//	schema, secret, err := bot.ReadAuthCookie(cookieFile)
-	//	if !err {
-	//		fmt.Printf("Failed to read cookie file: %v\n", err)
-	//		return
-	//	}
-	//	bot.Schema = schema
-	//	bot.Secret = string(secret)
-	//}
+	bot.SendMessageLoop(context.Background())
+	err := bot.ClientMessageLoop(ctx)
+	if err != nil {
+		go func() {
+			for {
+				select {
+				case <-bot.DisconnectedEvent:
+					bot.Log("Connection Broken", fmt.Sprintf("Connection Closed: %s", err))
+					time.Sleep(2 * time.Second)
+					bot.ClientReset()
+					bot.Client = bot.InitClient(ctx)
+				default:
 
-	// Установка обработчиков событий
-	//bot.ServerDataEvent = Bot_ServerDataEvent
-	//bot.ServerMetaEvent = Bot_ServerMetaEvent
-	//bot.ServerPresEvent = Bot_ServerPresEvent
-	//bot.CtrlMessageEvent = Bot_CtrlMessageEvent
-	//bot.LoginSuccessEvent = Bot_LoginSuccessEvent
-	//bot.LoginFailedEvent = Bot_LoginFailedEvent
-	//bot.DisconnectedEvent = Bot_DisconnectedEvent
-	// Запуск ChatBot
-	//fmt.Println("Starting ChatBot...")
-	//fmt.Println("starting the golang chatbot.....")
-	//// Set up a connection to the gRPC server.
-	//conn, err := grpc.Dial(address, grpc.WithInsecure())
-	//if err != nil {
-	//	log.Fatalf("did not connect: %v", err)
-	//}
-	//defer conn.Close()
-	//fmt.Println("server connected with:" + address)
-	////
-	//client := pb.NewNodeClient(conn)
-	//nmc, err := client.MessageLoop(context.Background())
-	//if err != nil {
-	//	grpclog.Fatalln(err)
-	//}
-	// Установка HTTP API для обработки загрузки больших файлов
-
-	// Ожидание прерывания
-	//<-sigint
+				}
+			}
+		}()
+	}
 
 	// Остановка ChatBot
 	//fmt.Println("[Bye Bye] ChatBot Stopped")
 	//bot.Stop()
+	//<-stop
+	//bot.Server.GracefulStop()
 }
