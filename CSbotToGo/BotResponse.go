@@ -87,73 +87,103 @@ type ChatBot struct {
 
 func (c *ChatBot) SendMessageLoop(ctx context.Context) {
 	log.Println("Message send queue started...")
-	if len(c.SendMsgQueue) > 0 {
-		msg := c.SendMsgQueue[0]
-		c.SendMsgQueue = c.SendMsgQueue[1:]
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			for {
+				if len(c.SendMsgQueue) > 0 {
+					msg := c.SendMsgQueue[0]
+					c.SendMsgQueue = c.SendMsgQueue[1:]
 
-		err := c.Client.SendMsg(msg)
-		//err := c.Client.RecvMsg(msg)
+					err := c.Client.SendMsg(msg)
+					//err := c.Client.RecvMsg(msg)
 
-		if err != nil {
-			log.Printf("Send Message Error: %v, Failed message will be put back to queue...\n", err)
-			c.SendMsgQueue[0] = msg
-			time.Sleep(1 * time.Second)
+					if err != nil {
+						log.Printf("Send Message Error: %v, Failed message will be put back to queue...\n", err)
+						c.SendMsgQueue[0] = msg
+						time.Sleep(1 * time.Second)
+					}
+				} else {
+					time.Sleep(10 * time.Millisecond)
+					ctx.Done()
+					if len(c.SendMsgQueue) == 0 {
+						return
+					}
+
+				}
+			}
 		}
-	} else {
-		time.Sleep(10 * time.Millisecond)
 	}
-	if len(c.SendMsgQueue) > 0 {
-		msg := c.SendMsgQueue[0]
-		c.SendMsgQueue = c.SendMsgQueue[1:]
-
-		err := c.Client.SendMsg(msg)
-		if err != nil {
-			log.Printf("Send Message Error: %v, Failed message will be put back to queue...\n", err)
-			c.SendMsgQueue[0] = msg
-			time.Sleep(1 * time.Second)
-		}
-	} else {
-		time.Sleep(10 * time.Millisecond)
-	}
-	if len(c.SendMsgQueue) > 0 {
-		msg := c.SendMsgQueue[0]
-		c.SendMsgQueue = c.SendMsgQueue[1:]
-
-		err := c.Client.SendMsg(msg)
-		if err != nil {
-			log.Printf("Send Message Error: %v, Failed message will be put back to queue...\n", err)
-			c.SendMsgQueue[0] = msg
-			time.Sleep(1 * time.Second)
-		}
-	} else {
-		time.Sleep(10 * time.Millisecond)
-	}
-	if len(c.SendMsgQueue) > 0 {
-		msg := c.SendMsgQueue[0]
-		c.SendMsgQueue = c.SendMsgQueue[1:]
-
-		err := c.Client.SendMsg(msg)
-		if err != nil {
-			log.Printf("Send Message Error: %v, Failed message will be put back to queue...\n", err)
-			c.SendMsgQueue[0] = msg
-			time.Sleep(1 * time.Second)
-		}
-	} else {
-		time.Sleep(10 * time.Millisecond)
-	}
-	if len(c.SendMsgQueue) > 0 {
-		msg := c.SendMsgQueue[0]
-		c.SendMsgQueue = c.SendMsgQueue[1:]
-
-		err := c.Client.SendMsg(msg)
-		if err != nil {
-			log.Printf("Send Message Error: %v, Failed message will be put back to queue...\n", err)
-			c.SendMsgQueue[0] = msg
-			time.Sleep(1 * time.Second)
-		}
-	} else {
-		time.Sleep(10 * time.Millisecond)
-	}
+	//
+	//if len(c.SendMsgQueue) > 0 {
+	//	msg := c.SendMsgQueue[0]
+	//	c.SendMsgQueue = c.SendMsgQueue[1:]
+	//
+	//	err := c.Client.SendMsg(msg)
+	//	//err := c.Client.RecvMsg(msg)
+	//
+	//	if err != nil {
+	//		log.Printf("Send Message Error: %v, Failed message will be put back to queue...\n", err)
+	//		c.SendMsgQueue[0] = msg
+	//		time.Sleep(1 * time.Second)
+	//	}
+	//} else {
+	//	time.Sleep(10 * time.Millisecond)
+	//}
+	//if len(c.SendMsgQueue) > 0 {
+	//	msg := c.SendMsgQueue[0]
+	//	c.SendMsgQueue = c.SendMsgQueue[1:]
+	//
+	//	err := c.Client.SendMsg(msg)
+	//	if err != nil {
+	//		log.Printf("Send Message Error: %v, Failed message will be put back to queue...\n", err)
+	//		c.SendMsgQueue[0] = msg
+	//		time.Sleep(1 * time.Second)
+	//	}
+	//} else {
+	//	time.Sleep(10 * time.Millisecond)
+	//}
+	//if len(c.SendMsgQueue) > 0 {
+	//	msg := c.SendMsgQueue[0]
+	//	c.SendMsgQueue = c.SendMsgQueue[1:]
+	//
+	//	err := c.Client.SendMsg(msg)
+	//	if err != nil {
+	//		log.Printf("Send Message Error: %v, Failed message will be put back to queue...\n", err)
+	//		c.SendMsgQueue[0] = msg
+	//		time.Sleep(1 * time.Second)
+	//	}
+	//} else {
+	//	time.Sleep(10 * time.Millisecond)
+	//}
+	//if len(c.SendMsgQueue) > 0 {
+	//	msg := c.SendMsgQueue[0]
+	//	c.SendMsgQueue = c.SendMsgQueue[1:]
+	//
+	//	err := c.Client.SendMsg(msg)
+	//	if err != nil {
+	//		log.Printf("Send Message Error: %v, Failed message will be put back to queue...\n", err)
+	//		c.SendMsgQueue[0] = msg
+	//		time.Sleep(1 * time.Second)
+	//	}
+	//} else {
+	//	time.Sleep(10 * time.Millisecond)
+	//}
+	//if len(c.SendMsgQueue) > 0 {
+	//	msg := c.SendMsgQueue[0]
+	//	c.SendMsgQueue = c.SendMsgQueue[1:]
+	//
+	//	err := c.Client.SendMsg(msg)
+	//	if err != nil {
+	//		log.Printf("Send Message Error: %v, Failed message will be put back to queue...\n", err)
+	//		c.SendMsgQueue[0] = msg
+	//		time.Sleep(1 * time.Second)
+	//	}
+	//} else {
+	//	time.Sleep(10 * time.Millisecond)
+	//}
 
 	log.Println("Detect cancel message, stop sending message...")
 	//for {
@@ -341,21 +371,8 @@ func (c *ChatBot) ClientMessageLoop(ctx context.Context) error {
 			return err
 		default:
 			for {
-				//pbx.Node_MessageLoopClient()
-				//response, err := c.Client.Recv()
-				//resp, err := c.Cl3.Recv()
-				response, err := c.Client.Recv()
-				//err = c.Client.SendMsg(&pbx.ClientMsg{Message: &pbx.ClientMsg_Note{Note: &pbx.ClientNote{
-				//	Topic:   response.Topic,
-				//	What:    0,
-				//	SeqId:   0,
-				//	Unread:  0,
-				//	Event:   0,
-				//	Payload: nil,
-				//}}})
-				//	err = c.Client.RecvMsg(proto.Message(response))
-				//fmt.Println(resp.Message, resp.GetMessage())
 
+				response, err := c.Client.Recv()
 				if err == io.EOF {
 					break
 				}
@@ -365,7 +382,7 @@ func (c *ChatBot) ClientMessageLoop(ctx context.Context) error {
 				}
 				//fmt.Println(response.GetData(), c.Data)
 				//fmt.Println("c.GetData: ", c.GetData())
-				fmt.Println(response.GetData(), " ", response.GetPres())
+				fmt.Println(response.GetData(), "", response.GetMeta(), " ", response.GetPres())
 
 				if response.GetCtrl() != nil {
 					messageh := fmt.Sprintf("ID=%v  Code=%v  Text=%v  Params=%v\n", response.GetCtrl().Id, response.GetCtrl().Code, response.GetCtrl().Text, response.GetCtrl().Params)
@@ -393,6 +410,7 @@ func (c *ChatBot) ClientMessageLoop(ctx context.Context) error {
 							}))
 						}
 					}
+
 				} else if response.GetPres() != nil {
 					if response.GetPres().Topic == "me" {
 						if _, ok := c.Subscriptions[response.GetPres().Src]; !ok {
@@ -406,7 +424,7 @@ func (c *ChatBot) ClientMessageLoop(ctx context.Context) error {
 						}
 
 					}
-					c.OnServerPresEvent(c.ServerPresEventArgs.ServerPresEventArgs(response.GetPres()))
+					//c.OnServerPresEvent(c.ServerPresEventArgs.ServerPresEventArgs(response.GetPres()))
 
 				} else if response.GetMeta() != nil {
 					c.OnServerMetaEvent(c.ServerMetaEventArgs.ServerMetaEventArgs(response.GetMeta()))
@@ -522,7 +540,7 @@ func (c *ChatBot) ExecFuture(tid string, code int, text string, topic string, pa
 		if code >= 200 && code < 400 {
 			arg := bundle.Arg
 			bundle.Action(arg, parameters)
-			if bundle.Type == 4 {
+			if bundle.Type == Sub {
 				c.ClientPost(c.GetSubs("me", false))
 			} else if bundle.Type == 3 {
 				c.OnLoginEvent(true)

@@ -40,6 +40,7 @@ func main() {
 	//	log.Println("Server connect c")
 	//}()
 	fmt.Println("Server started")
+
 	err = c.Server.Serve(lis)
 	if err != nil {
 		panic(err)

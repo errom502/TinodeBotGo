@@ -3,7 +3,12 @@ package main
 import (
 	"csToGo25042023/CSbotToGo"
 	"fmt"
+	pbx "github.com/tinode/chat/pbx"
 	"golang.org/x/net/context"
+	"google.golang.org/grpc"
+	"net"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -116,19 +121,54 @@ func main() {
 	bot.LoginFailedEvent = Bot_LoginFailedEvent
 	//bot.DisconnectedEvent = Bot_DisconnectedEvent
 	bot.SetHttpApi("http://localhost:6660", "AQAAAAABAABtfBKva9nJN3ykjBi0feyL")
-	//bot.BotResponse.
 	var b CSbotToGo.BotResponse
 	b.BotResponse(bot)
 	bot.BotResponse = b.IBotResponse
 	ctx, _ := context.WithCancel(context.Background())
 	//bot.Start()
-	go func() {
-		bot.Client = bot.InitClient(ctx)
-	}()
-	//bot.Client = bot.InitClient(ctx)
 
+	bot.Server = grpc.NewServer()
+	chatBotPlugin := &bot.ChatBotPlugin
+
+	pbx.RegisterPluginServer(bot.Server, chatBotPlugin.PluginServer)
+	lise := "0.0.0.0:40051"
+	listenHost := strings.Split(lise, ":")[0]
+	listenPort, err := strconv.Atoi(strings.Split(lise, ":")[1])
+	if err != nil {
+		panic(err)
+	}
+	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%d", listenHost, listenPort))
+	if err != nil {
+		panic(err)
+	}
+	//wg := new(sync.WaitGroup)
+	//wg.Add(1)
+	//go func() {
+	//	err = c.Server.Serve(lis)
+	//	wg.Done()
+	//}()
+	//go func() {
+	//	if err := c.Server.Serve(lis); err != nil {
+	//		log.Fatalf("failed to serve: %v", err)
+	//	}
+	//	log.Println("Server connect c")
+	//}()
+	fmt.Println("Server started")
+	//go func() {
+	//	err = bot.Server.Serve(lis)
+	//	if err != nil {
+	//		panic(err)
+	//	}
+	//}()
+	go bot.Server.Serve(lis)
+
+	//go func() {
+	//	bot.Client = bot.InitClient(ctx)
+	//}()
+	go bot.InitClient(ctx)
+	//	bot.Client = bot.InitClient(ctx)
 	bot.SendMessageLoop(context.Background())
-	err := bot.ClientMessageLoop(ctx)
+	err = bot.ClientMessageLoop(ctx)
 	if err != nil {
 		go func() {
 			for {
