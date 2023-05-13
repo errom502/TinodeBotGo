@@ -5,11 +5,10 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+
 	"github.com/go-resty/resty/v2"
 	pbx "github.com/tinode/chat/pbx"
-	"golang.org/x/net/context"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/keepalive"
+
 	"io"
 	"io/ioutil"
 	"log"
@@ -21,6 +20,10 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"golang.org/x/net/context"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
 )
 
 //bot.ServerPresEvent = func(sender interface{}, e ServerPresEventArgs) {
@@ -363,7 +366,6 @@ func (c *ChatBot) Start() {
 
 //ClientMessageLoop  остановился на этой функции
 func (c *ChatBot) ClientMessageLoop(ctx context.Context) error {
-
 	var err error
 	for {
 		select {
@@ -371,24 +373,22 @@ func (c *ChatBot) ClientMessageLoop(ctx context.Context) error {
 			return err
 		default:
 			for {
-
 				response, err := c.Client.Recv()
 				if err == io.EOF {
 					break
 				}
-
 				if err != nil {
 					log.Fatalf("Error while receiving server response: %v", err)
 				}
-				//fmt.Println(response.GetData(), c.Data)
-				//fmt.Println("c.GetData: ", c.GetData())
-				fmt.Println(response.GetData(), "", response.GetMeta(), " ", response.GetPres())
 
-				if response.GetCtrl() != nil {
+				typeT := reflect.TypeOf(response.Message)
+				fmt.Println(typeT)
+				switch typeT.String() {
+				case "*pbx.ServerMsg_Ctrl":
 					messageh := fmt.Sprintf("ID=%v  Code=%v  Text=%v  Params=%v\n", response.GetCtrl().Id, response.GetCtrl().Code, response.GetCtrl().Text, response.GetCtrl().Params)
 					c.Log("Ctrl Message", messageh)
 					c.ExecFuture(response.GetCtrl().Id, int(response.GetCtrl().Code), response.GetCtrl().Text, response.GetCtrl().Topic, response.GetCtrl().Params)
-				} else if response.GetData() != nil {
+				case "*ServerMsg_Data":
 					c.OnServerDataEvent(c.ServerDataEventArgs.ServerDataEventArgs(response.GetData()))
 					if response.GetData().FromUserId != c.BotUID {
 						c.ClientPost(c.NoteRead(response.GetData().Topic, int(response.GetData().SeqId)))
@@ -410,8 +410,7 @@ func (c *ChatBot) ClientMessageLoop(ctx context.Context) error {
 							}))
 						}
 					}
-
-				} else if response.GetPres() != nil {
+				case "*ServerMsg_Pres":
 					if response.GetPres().Topic == "me" {
 						if _, ok := c.Subscriptions[response.GetPres().Src]; !ok {
 							if response.GetPres().What == pbx.ServerPres_ON || response.GetPres().What == pbx.ServerPres_MSG {
@@ -424,16 +423,132 @@ func (c *ChatBot) ClientMessageLoop(ctx context.Context) error {
 						}
 
 					}
-					//c.OnServerPresEvent(c.ServerPresEventArgs.ServerPresEventArgs(response.GetPres()))
-
-				} else if response.GetMeta() != nil {
+				case "*pbx.ServerMsg_Info":
+					//fmt.Println()
+					//k := response.GetMessage()
+					fmt.Println(response.GetInfo(), "\n", response.GetMessage())
+				case "*ServerMsg_Meta":
 					c.OnServerMetaEvent(c.ServerMetaEventArgs.ServerMetaEventArgs(response.GetMeta()))
 				}
+				///////
+
+				//////
+				/////
+
+				// if response.GetCtrl() != nil {
+				// 	messageh := fmt.Sprintf("ID=%v  Code=%v  Text=%v  Params=%v\n", response.GetCtrl().Id, response.GetCtrl().Code, response.GetCtrl().Text, response.GetCtrl().Params)
+				// 	c.Log("Ctrl Message", messageh)
+				// 	c.ExecFuture(response.GetCtrl().Id, int(response.GetCtrl().Code), response.GetCtrl().Text, response.GetCtrl().Topic, response.GetCtrl().Params)
+				// } else if response.GetData() != nil {
+				// 	fmt.Println(response.GetMessage())
+				// 	c.OnServerDataEvent(c.ServerDataEventArgs.ServerDataEventArgs(response.GetData()))
+				// 	if response.GetData().FromUserId != c.BotUID {
+				// 		c.ClientPost(c.NoteRead(response.GetData().Topic, int(response.GetData().SeqId)))
+				// 		clone := response.GetData()
+				// 		time.Sleep(50 * time.Millisecond)
+				// 		if c.BotResponse != nil {
+				// 			reply, _ := c.BotResponse.ThinkAndReply(clone)
+				// 			if reply != nil {
+				// 				c.ClientPost(c.Publish(response.GetData().Topic, reply))
+				// 			}
+				// 		} else {
+				// 			c.ClientPost(c.Publish(response.GetData().Topic, &ChatMessage{
+				// 				MessageBase: MessageBase{},
+				// 				Text:        "I don't know how to talk with you, maybe my father didn't put my brain in my head...",
+				// 				Fmt:         nil,
+				// 				Ent:         nil,
+				// 				IsPlainText: false,
+				// 				MessageType: "",
+				// 			}))
+				// 		}
+				// 	}
+
+				// } else if response.GetPres() != nil {
+				// 	if response.GetPres().Topic == "me" {
+				// 		if _, ok := c.Subscriptions[response.GetPres().Src]; !ok {
+				// 			if response.GetPres().What == pbx.ServerPres_ON || response.GetPres().What == pbx.ServerPres_MSG {
+				// 				c.ClientPost(c.Subscribe(response.GetPres().Src))
+				// 			} else if ok {
+				// 				if response.GetPres().What == pbx.ServerPres_OFF {
+				// 					c.ClientPost(c.Leave(response.GetPres().Src))
+				// 				}
+				// 			}
+				// 		}
+
+				// 	}
+				// 	//c.OnServerPresEvent(c.ServerPresEventArgs.ServerPresEventArgs(response.GetPres()))
+
+				// } else if response.GetMeta() != nil {
+				// 	c.OnServerMetaEvent(c.ServerMetaEventArgs.ServerMetaEventArgs(response.GetMeta()))
+				// }
+				/////
 			}
 		}
 	}
 	return err
 }
+
+func (c *ChatBot) ClMlp() {
+	for {
+		response, err := c.Client.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatalf("Error while receiving server response: %v", err)
+		}
+		//fmt.Println(response.GetData(), c.Data)
+		//fmt.Println("c.GetData: ", c.GetData())
+		fmt.Println(response.GetData(), " ", response.GetPres())
+
+		if response.GetCtrl() != nil {
+			messageh := fmt.Sprintf("ID=%v  Code=%v  Text=%v  Params=%v\n", response.GetCtrl().Id, response.GetCtrl().Code, response.GetCtrl().Text, response.GetCtrl().Params)
+			c.Log("Ctrl Message", messageh)
+			c.ExecFuture(response.GetCtrl().Id, int(response.GetCtrl().Code), response.GetCtrl().Text, response.GetCtrl().Topic, response.GetCtrl().Params)
+		} else if response.GetData() != nil {
+			c.OnServerDataEvent(c.ServerDataEventArgs.ServerDataEventArgs(response.GetData()))
+			if response.GetData().FromUserId != c.BotUID {
+				c.ClientPost(c.NoteRead(response.GetData().Topic, int(response.GetData().SeqId)))
+				clone := response.GetData()
+				time.Sleep(50 * time.Millisecond)
+				if c.BotResponse != nil {
+					reply, _ := c.BotResponse.ThinkAndReply(clone)
+					if reply != nil {
+						c.ClientPost(c.Publish(response.GetData().Topic, reply))
+					}
+				} else {
+					c.ClientPost(c.Publish(response.GetData().Topic, &ChatMessage{
+						MessageBase: MessageBase{},
+						Text:        "I don't know how to talk with you, maybe my father didn't put my brain in my head...",
+						Fmt:         nil,
+						Ent:         nil,
+						IsPlainText: false,
+						MessageType: "",
+					}))
+				}
+			}
+
+		} else if response.GetPres() != nil {
+			if response.GetPres().Topic == "me" {
+				if _, ok := c.Subscriptions[response.GetPres().Src]; !ok {
+					if response.GetPres().What == pbx.ServerPres_ON || response.GetPres().What == pbx.ServerPres_MSG {
+						c.ClientPost(c.Subscribe(response.GetPres().Src))
+					} else if ok {
+						if response.GetPres().What == pbx.ServerPres_OFF {
+							c.ClientPost(c.Leave(response.GetPres().Src))
+						}
+					}
+				}
+
+			}
+			//c.OnServerPresEvent(c.ServerPresEventArgs.ServerPresEventArgs(response.GetPres()))
+
+		} else if response.GetMeta() != nil {
+			c.OnServerMetaEvent(c.ServerMetaEventArgs.ServerMetaEventArgs(response.GetMeta()))
+		}
+	}
+}
+
 func (c *ChatBot) Leave(topic string) *pbx.ClientMsg {
 	tid := c.GetNextTid()
 	c.AddFuture(tid, c.Future.Future(tid, Leave, func(topicName string, unused map[string][]byte) {
