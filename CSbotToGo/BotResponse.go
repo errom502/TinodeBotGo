@@ -9,6 +9,7 @@ import (
 	"github.com/go-resty/resty/v2"
 	pbx "github.com/tinode/chat/pbx"
 
+	//pbx "csToGo25042023/pbx"
 	"io"
 	"io/ioutil"
 	"log"
@@ -96,6 +97,9 @@ func (c *ChatBot) SendMessageLoop(ctx context.Context) {
 			return
 		default:
 			for {
+				if c.Client == nil {
+					continue
+				}
 				if len(c.SendMsgQueue) > 0 {
 					msg := c.SendMsgQueue[0]
 					c.SendMsgQueue = c.SendMsgQueue[1:]
@@ -337,14 +341,20 @@ func (c *ChatBot) ClientReset() {
 	}
 	c.SendMsgQueue = []*pbx.ClientMsg{}
 }
-func (c *ChatBot) Start() {
+func (c *ChatBot) Start(ctx context.Context) {
+	botCtx, botCtxCancel := context.WithCancel(ctx)
 	fmt.Println("init Server")
-	ctx, _ := context.WithCancel(context.Background())
-	//c.Server = c.InitServer()
-	c.Client = c.InitClient(ctx)
-	//go c.InitClient(ctx)
+	go func() {
+		err := c.InitServer()
+		if err != nil {
+			botCtxCancel()
+		}
+	}()
+	go func() {
+		c.InitClient(botCtx)
+	}()
 
-	c.SendMessageLoop(context.Background())
+	c.SendMessageLoop(ctx)
 	err := c.ClientMessageLoop(ctx)
 	if err != nil {
 		go func() {
@@ -354,7 +364,7 @@ func (c *ChatBot) Start() {
 					c.Log("Connection Broken", fmt.Sprintf("Connection Closed: %s", err))
 					time.Sleep(2 * time.Second)
 					c.ClientReset()
-					c.Client = c.InitClient(ctx)
+					c.InitClient(ctx)
 				default:
 
 				}
@@ -373,7 +383,11 @@ func (c *ChatBot) ClientMessageLoop(ctx context.Context) error {
 			return err
 		default:
 			for {
+				if c.Client == nil {
+					continue
+				}
 				response, err := c.Client.Recv()
+
 				if err == io.EOF {
 					break
 				}
@@ -381,14 +395,77 @@ func (c *ChatBot) ClientMessageLoop(ctx context.Context) error {
 					log.Fatalf("Error while receiving server response: %v", err)
 				}
 
-				typeT := reflect.TypeOf(response.Message)
-				fmt.Println(typeT)
-				switch typeT.String() {
-				case "*pbx.ServerMsg_Ctrl":
+				// typeT := reflect.TypeOf(response.Message)
+				// fmt.Println(typeT)
+				// // response.GetMessage()
+				// //fmt.Println(response.(type))
+				// if typeT != nil {
+
+				// 	switch cer := response.GetMessage().(type) {
+				// 	case *pbx.ServerMsg_Ctrl:
+				// 		messageh := fmt.Sprintf("ID=%v  Code=%v  Text=%v  Params=%v\n", response.GetCtrl().Id, response.GetCtrl().Code, response.GetCtrl().Text, response.GetCtrl().Params)
+				// 		c.Log("Ctrl Message", messageh)
+				// 		c.ExecFuture(response.GetCtrl().Id, int(response.GetCtrl().Code), response.GetCtrl().Text, response.GetCtrl().Topic, response.GetCtrl().Params)
+
+				// 	case *pbx.ServerMsg_Data:
+				// 		fmt.Printf("\nMessage:  %v\n", response.GetMessage())
+				// 		c.OnServerDataEvent(c.ServerDataEventArgs.ServerDataEventArgs(response.GetData()))
+				// 		if response.GetData().FromUserId != c.BotUID {
+				// 			c.ClientPost(c.NoteRead(response.GetData().Topic, int(response.GetData().SeqId)))
+				// 			clone := response.GetData()
+				// 			time.Sleep(50 * time.Millisecond)
+				// 			if c.BotResponse != nil {
+				// 				reply, _ := c.BotResponse.ThinkAndReply(clone)
+				// 				if reply != nil {
+				// 					c.ClientPost(c.Publish(response.GetData().Topic, reply))
+				// 				}
+				// 			} else {
+				// 				c.ClientPost(c.Publish(response.GetData().Topic, &ChatMessage{
+				// 					MessageBase: MessageBase{},
+				// 					Text:        "I don't know how to talk with you, maybe my father didn't put my brain in my head...",
+				// 					Fmt:         nil,
+				// 					Ent:         nil,
+				// 					IsPlainText: false,
+				// 					MessageType: "",
+				// 				}))
+				// 			}
+				// 		}
+				// 	case *pbx.ServerMsg_Pres:
+				// 		if response.GetPres().Topic == "me" {
+				// 			if _, ok := c.Subscriptions[response.GetPres().Src]; !ok {
+				// 				if response.GetPres().What == pbx.ServerPres_ON || response.GetPres().What == pbx.ServerPres_MSG {
+				// 					c.ClientPost(c.Subscribe(response.GetPres().Src))
+				// 				}
+				// 			} else if ok {
+				// 				if response.GetPres().What == pbx.ServerPres_OFF {
+				// 					c.ClientPost(c.Leave(response.GetPres().Src))
+				// 				}
+				// 			}
+				// 		}
+				// 	case *pbx.ServerMsg_Info:
+				// 		//fmt.Println()
+				// 		//k := response.GetMessage()
+				// 		//fmt.Println(response.GetInfo())
+				// 	case *pbx.ServerMsg_Meta:
+
+				// 		c.OnServerMetaEvent(c.ServerMetaEventArgs.ServerMetaEventArgs(response.GetMeta()))
+				// 	default:
+				// 		_ = cer
+				// 	}
+
+				// }
+
+				///////
+
+				//////
+				/////
+
+				if response.GetCtrl() != nil {
 					messageh := fmt.Sprintf("ID=%v  Code=%v  Text=%v  Params=%v\n", response.GetCtrl().Id, response.GetCtrl().Code, response.GetCtrl().Text, response.GetCtrl().Params)
 					c.Log("Ctrl Message", messageh)
 					c.ExecFuture(response.GetCtrl().Id, int(response.GetCtrl().Code), response.GetCtrl().Text, response.GetCtrl().Topic, response.GetCtrl().Params)
-				case "*ServerMsg_Data":
+				} else if response.GetData() != nil {
+					fmt.Println(response.GetMessage())
 					c.OnServerDataEvent(c.ServerDataEventArgs.ServerDataEventArgs(response.GetData()))
 					if response.GetData().FromUserId != c.BotUID {
 						c.ClientPost(c.NoteRead(response.GetData().Topic, int(response.GetData().SeqId)))
@@ -410,77 +487,23 @@ func (c *ChatBot) ClientMessageLoop(ctx context.Context) error {
 							}))
 						}
 					}
-				case "*ServerMsg_Pres":
+
+				} else if response.GetPres() != nil {
 					if response.GetPres().Topic == "me" {
 						if _, ok := c.Subscriptions[response.GetPres().Src]; !ok {
 							if response.GetPres().What == pbx.ServerPres_ON || response.GetPres().What == pbx.ServerPres_MSG {
 								c.ClientPost(c.Subscribe(response.GetPres().Src))
-							} else if ok {
-								if response.GetPres().What == pbx.ServerPres_OFF {
-									c.ClientPost(c.Leave(response.GetPres().Src))
-								}
+							}
+						} else {
+							if response.GetPres().What == pbx.ServerPres_OFF {
+								c.ClientPost(c.Leave(response.GetPres().Src))
 							}
 						}
-
 					}
-				case "*pbx.ServerMsg_Info":
-					//fmt.Println()
-					//k := response.GetMessage()
-					fmt.Println(response.GetInfo(), "\n", response.GetMessage())
-				case "*ServerMsg_Meta":
+
+				} else if response.GetMeta() != nil {
 					c.OnServerMetaEvent(c.ServerMetaEventArgs.ServerMetaEventArgs(response.GetMeta()))
 				}
-				///////
-
-				//////
-				/////
-
-				// if response.GetCtrl() != nil {
-				// 	messageh := fmt.Sprintf("ID=%v  Code=%v  Text=%v  Params=%v\n", response.GetCtrl().Id, response.GetCtrl().Code, response.GetCtrl().Text, response.GetCtrl().Params)
-				// 	c.Log("Ctrl Message", messageh)
-				// 	c.ExecFuture(response.GetCtrl().Id, int(response.GetCtrl().Code), response.GetCtrl().Text, response.GetCtrl().Topic, response.GetCtrl().Params)
-				// } else if response.GetData() != nil {
-				// 	fmt.Println(response.GetMessage())
-				// 	c.OnServerDataEvent(c.ServerDataEventArgs.ServerDataEventArgs(response.GetData()))
-				// 	if response.GetData().FromUserId != c.BotUID {
-				// 		c.ClientPost(c.NoteRead(response.GetData().Topic, int(response.GetData().SeqId)))
-				// 		clone := response.GetData()
-				// 		time.Sleep(50 * time.Millisecond)
-				// 		if c.BotResponse != nil {
-				// 			reply, _ := c.BotResponse.ThinkAndReply(clone)
-				// 			if reply != nil {
-				// 				c.ClientPost(c.Publish(response.GetData().Topic, reply))
-				// 			}
-				// 		} else {
-				// 			c.ClientPost(c.Publish(response.GetData().Topic, &ChatMessage{
-				// 				MessageBase: MessageBase{},
-				// 				Text:        "I don't know how to talk with you, maybe my father didn't put my brain in my head...",
-				// 				Fmt:         nil,
-				// 				Ent:         nil,
-				// 				IsPlainText: false,
-				// 				MessageType: "",
-				// 			}))
-				// 		}
-				// 	}
-
-				// } else if response.GetPres() != nil {
-				// 	if response.GetPres().Topic == "me" {
-				// 		if _, ok := c.Subscriptions[response.GetPres().Src]; !ok {
-				// 			if response.GetPres().What == pbx.ServerPres_ON || response.GetPres().What == pbx.ServerPres_MSG {
-				// 				c.ClientPost(c.Subscribe(response.GetPres().Src))
-				// 			} else if ok {
-				// 				if response.GetPres().What == pbx.ServerPres_OFF {
-				// 					c.ClientPost(c.Leave(response.GetPres().Src))
-				// 				}
-				// 			}
-				// 		}
-
-				// 	}
-				// 	//c.OnServerPresEvent(c.ServerPresEventArgs.ServerPresEventArgs(response.GetPres()))
-
-				// } else if response.GetMeta() != nil {
-				// 	c.OnServerMetaEvent(c.ServerMetaEventArgs.ServerMetaEventArgs(response.GetMeta()))
-				// }
 				/////
 			}
 		}
@@ -657,12 +680,12 @@ func (c *ChatBot) ExecFuture(tid string, code int, text string, topic string, pa
 			bundle.Action(arg, parameters)
 			if bundle.Type == Sub {
 				c.ClientPost(c.GetSubs("me", false))
-			} else if bundle.Type == 3 {
+			} else if bundle.Type == Login {
 				c.OnLoginEvent(true)
 			}
 			c.Log("Exec Future", fmt.Sprintf("Tid=%v Code=%v Topic=%v Text=%v Params=%v ...OK", tid, code, topic, text, parameters))
 		} else {
-			if bundle.Type == 3 {
+			if bundle.Type == Login {
 				c.OnLoginEvent(false)
 			}
 			c.Log("Exec Future", fmt.Sprintf("Tid=%v Code=%v Topic=%v Text=%v Params=%v ...Failed", tid, code, topic, text, parameters))
@@ -676,6 +699,29 @@ type ChatBotPlugin struct {
 	//pbx.PluginServer
 	//pbx.UnimplementedPluginServer
 	pbx.PluginServer
+}
+
+type ChBotPlugin struct {
+	pbx.UnimplementedPluginServer
+}
+
+func (c *ChBotPlugin) Message(context.Context, *pbx.MessageEvent) (*pbx.Unused, error) {
+	return &pbx.Unused{}, nil
+}
+func (c *ChBotPlugin) Account(context.Context, *pbx.AccountEvent) (*pbx.Unused, error) {
+	return &pbx.Unused{}, nil
+}
+func (c *ChBotPlugin) Find(context.Context, *pbx.SearchQuery) (*pbx.SearchFound, error) {
+	return &pbx.SearchFound{}, nil
+}
+func (c *ChBotPlugin) FireHose(context.Context, *pbx.ClientReq) (*pbx.ServerResp, error) {
+	return &pbx.ServerResp{}, nil
+}
+func (c *ChBotPlugin) Subscription(context.Context, *pbx.SubscriptionEvent) (*pbx.Unused, error) {
+	return &pbx.Unused{}, nil
+}
+func (c *ChBotPlugin) Topic(context.Context, *pbx.TopicEvent) (*pbx.Unused, error) {
+	return &pbx.Unused{}, nil
 }
 
 func (c *ChatBotPlugin) Account(ctx context.Context, request *pbx.AccountEvent) (*pbx.Unused, error) {
@@ -692,41 +738,29 @@ func (c *ChatBotPlugin) Account(ctx context.Context, request *pbx.AccountEvent) 
 	fmt.Println(action)
 	return &pbx.Unused{}, nil
 }
-func (c *ChatBot) InitServer() *grpc.Server {
+func (c *ChatBot) InitServer() error {
 	c.Server = grpc.NewServer()
-	chatBotPlugin := &ChatBotPlugin{}
 
-	pbx.RegisterPluginServer(c.Server, chatBotPlugin.PluginServer)
+	//chatBotPlugin := &ChatBotPlugin{}
 
 	listenHost := strings.Split(c.Listen, ":")[0]
 	listenPort, err := strconv.Atoi(strings.Split(c.Listen, ":")[1])
 	if err != nil {
 		panic(err)
 	}
+	fmt.Println(fmt.Sprintf("%s:%d", listenHost, listenPort))
 	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%d", listenHost, listenPort))
 	if err != nil {
 		panic(err)
 	}
-	//wg := new(sync.WaitGroup)
-	//wg.Add(1)
-	//go func() {
-	//	err = c.Server.Serve(lis)
-	//	wg.Done()
-	//}()
-	go func() {
-		if err := c.Server.Serve(lis); err != nil {
-			log.Fatalf("failed to serve: %v", err)
-		}
-		log.Println("Server connect c")
-	}()
-	//err = c.Server.Serve(lis)
-	if err != nil {
-		panic(err)
-	}
+	chatBotPlugin := &ChBotPlugin{}
 
-	return c.Server
+	pbx.RegisterPluginServer(c.Server, chatBotPlugin)
+
+	return c.Server.Serve(lis)
 }
-func (c *ChatBot) InitClient(ctx context.Context) pbx.Node_MessageLoopClient {
+
+func (c *ChatBot) InitClient(ctx context.Context) {
 	// ping / 2s and timeout 2s
 	options := []grpc.DialOption{
 		grpc.WithInsecure(),
@@ -760,9 +794,10 @@ func (c *ChatBot) InitClient(ctx context.Context) pbx.Node_MessageLoopClient {
 	if err != nil {
 		log.Fatalf("Failed to connect: %v", err)
 	}
+	//nodecl := &ClientNd{}
 
 	client := pbx.NewNodeClient(conn)
-	stream, err := client.MessageLoop(context.Background())
+	stream, err := client.MessageLoop(ctx)
 	if err != nil {
 		log.Fatalf("Failed to open stream: %v", err)
 	}
@@ -771,8 +806,21 @@ func (c *ChatBot) InitClient(ctx context.Context) pbx.Node_MessageLoopClient {
 	c.ClientPost(c.Login(c.CookieFile, c.Schema, c.Secret))
 	c.ClientPost(c.Subscribe("me"))
 	c.Client = stream
-	return stream
+	//return stream
 }
+
+type ClientNd struct {
+	pbx.NodeClient
+}
+
+func (c *ClientNd) MessageLoop(ctx context.Context, opts ...grpc.CallOption) (pbx.Node_MessageLoopClient, error) {
+	return NMLC{}, nil
+}
+
+type NMLC struct {
+	pbx.Node_MessageLoopClient
+}
+
 func (c *ChatBot) Stop() {
 	c.Log("Stopping", "ChatBot is exiting...Wait a second...")
 	_, cancel := context.WithCancel(context.Background())
@@ -939,6 +987,7 @@ func (c *ChatBot) Upload(fileName string, redirectUrl string) (*UploadedAttachme
 func (c *ChatBot) ClientPost(msg *pbx.ClientMsg) {
 	//newMsg := *msg
 	c.SendMsgQueue = append(c.SendMsgQueue, msg)
+	//fmt.Println("pres.clientPost: ", c.SendMsgQueue)
 }
 func (c *ChatBot) Hello() *pbx.ClientMsg {
 	tid := c.GetNextTid()
@@ -991,14 +1040,14 @@ func (c *ChatBot) Subscribe(topic string) *pbx.ClientMsg {
 	c.AddFuture(tid, c.Future.Future(tid, Sub, func(topicName string, unused map[string][]byte) {
 		c.AddSubscription(topicName)
 	}, topic))
-
+	c.AddSubscription(topic)
 	b := &pbx.ClientMsg_Sub{Sub: &pbx.ClientSub{
 		Id:       tid,
 		Topic:    topic,
 		SetQuery: nil,
 		GetQuery: nil,
 	}}
-
+	fmt.Println("pres.subscribe: ", b)
 	return &pbx.ClientMsg{
 		Message: b,
 		Extra:   nil,
@@ -1008,6 +1057,7 @@ func (c *ChatBot) AddSubscription(topic string) {
 	if _, ok := c.Subscriptions[topic]; !ok {
 		c.Subscriptions[topic] = true
 	}
+	fmt.Println("pres.addsub: ", c.Subscriptions)
 }
 func (c *ChatBot) AddSubscriber(sub Subscriber) {
 	log.Printf("Update Subscriber: %v", sub)

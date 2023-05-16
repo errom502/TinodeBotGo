@@ -1,15 +1,11 @@
 package main
 
 import (
+	"context"
 	"csToGo25042023/CSbotToGo"
 	"fmt"
-	pbx "github.com/tinode/chat/pbx"
-	"golang.org/x/net/context"
-	"google.golang.org/grpc"
-	"net"
-	"strconv"
-	"strings"
-	"time"
+	"sync"
+	//pbx "csToGo25042023/pbx"
 )
 
 type UserInfo struct {
@@ -125,65 +121,63 @@ func main() {
 	b.BotResponse(bot)
 	bot.BotResponse = b.IBotResponse
 	ctx, _ := context.WithCancel(context.Background())
-	//bot.Start()
+	bot.Start(ctx)
 
-	bot.Server = grpc.NewServer()
-	chatBotPlugin := &bot.ChatBotPlugin
-
-	pbx.RegisterPluginServer(bot.Server, chatBotPlugin.PluginServer)
-	lise := "0.0.0.0:40051"
-	listenHost := strings.Split(lise, ":")[0]
-	listenPort, err := strconv.Atoi(strings.Split(lise, ":")[1])
-	if err != nil {
-		panic(err)
-	}
-	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%d", listenHost, listenPort))
-	if err != nil {
-		panic(err)
-	}
-	//wg := new(sync.WaitGroup)
-	//wg.Add(1)
-	//go func() {
-	//	err = c.Server.Serve(lis)
-	//	wg.Done()
-	//}()
-	//go func() {
-	//	if err := c.Server.Serve(lis); err != nil {
-	//		log.Fatalf("failed to serve: %v", err)
-	//	}
-	//	log.Println("Server connect c")
-	//}()
-	fmt.Println("Server started")
-	//go func() {
-	//	err = bot.Server.Serve(lis)
-	//	if err != nil {
-	//		panic(err)
-	//	}
-	//}()
-	go bot.Server.Serve(lis)
-
-	//go func() {
-	//	bot.Client = bot.InitClient(ctx)
-	//}()
-	go bot.InitClient(ctx)
-	//	bot.Client = bot.InitClient(ctx)
-	bot.SendMessageLoop(context.Background())
-	err = bot.ClientMessageLoop(ctx)
-	if err != nil {
-		go func() {
-			for {
-				select {
-				case <-bot.DisconnectedEvent:
-					bot.Log("Connection Broken", fmt.Sprintf("Connection Closed: %s", err))
-					time.Sleep(2 * time.Second)
-					bot.ClientReset()
-					bot.Client = bot.InitClient(ctx)
-				default:
-
-				}
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		defer func() {
+			if e := recover(); e != nil {
+				// дальнейшие действия при panic
 			}
+			wg.Done()
 		}()
-	}
+		<-ctx.Done()
+
+		// Выполняем действия для graceful shutdown
+		//dbConn.Close()
+	}()
+	wg.Wait()
+
+	///
+	///
+	// bot.Server = grpc.NewServer()
+	// chatBotPlugin := &bot.ChatBotPlugin
+
+	// pbx.RegisterPluginServer(bot.Server, chatBotPlugin.PluginServer)
+	// lise := "0.0.0.0:40051"
+	// listenHost := strings.Split(lise, ":")[0]
+	// listenPort, err := strconv.Atoi(strings.Split(lise, ":")[1])
+	// if err != nil {
+	// 	panic(err)
+	// }context.Background()
+	// lis, err := net.Listen("tcp", fmt.Sprintf("%s:%d", listenHost, listenPort))
+	// if err != nil {
+	// 	panic(err)
+	// }
+
+	// fmt.Println("Server started")
+
+	// go bot.Server.Serve(lis)
+
+	// go bot.InitClient(ctx)
+	// bot.SendMessageLoop(context.Background())
+	// err = bot.ClientMessageLoop(ctx)
+	// if err != nil {
+	// 	go func() {
+	// 		for {
+	// 			select {
+	// 			case <-bot.DisconnectedEvent:
+	// 				bot.Log("Connection Broken", fmt.Sprintf("Connection Closed: %s", err))
+	// 				time.Sleep(2 * time.Second)
+	// 				bot.ClientReset()
+	// 				bot.Client = bot.InitClient(ctx)
+	// 			default:
+
+	// 			}
+	// 		}
+	// 	}()
+	// }
 
 	// Остановка ChatBot
 	//fmt.Println("[Bye Bye] ChatBot Stopped")
