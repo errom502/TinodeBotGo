@@ -1,0 +1,24 @@
+логи в сборке tinode при старте бота go:
+I2023/05/22 14:53:21 grpc: session started xaPGS_z9bRI [::1]:54588 1
+I2023/05/22 14:53:21 grpc in: hi:{id:"240" user_agent:"/ ; gRPC-csharp/" ver:"0.18.1" lang:"EN"} xaPGS_z9bRI
+I2023/05/22 14:53:21 grpc in: login:{id:"241" scheme:"basic" secret:"alice:alice123"} xaPGS_z9bRI
+I2023/05/22 14:53:21 grpc in: sub:{id:"242" topic:"me"} xaPGS_z9bRI
+
+при отправке сообщения
+
+I2023/05/22 15:01:03 in: '{"note":{"topic":"usryvQne-AFwbw","what":"kp"}}' sid='tcQJXuXTxyw' uid='yCGGK9FaIwc'
+I2023/05/22 15:01:03 unknown info-note.event 
+I2023/05/22 15:01:03 in: '{"pub":{"id":"109723","topic":"usryvQne-AFwbw","noecho":true,"content":"moe"}}' sid='tcQJXuXTxyw' uid='yCGGK9FaIwc'
+I2023/05/22 15:01:04 in: '{"note":{"topic":"usryvQne-AFwbw","what":"recv","seq":512}}' sid='tcQJXuXTxyw' uid='yCGGK9FaIwc'
+I2023/05/22 15:01:04 unknown info-note.event 
+
+form
+I2023/05/24 11:47:00 grpc in: note:{topic:"usryCGGK9FaIwc" what:READ seq_id:614} KImjUEfAsz8
+I2023/05/24 11:47:00 grpc in: pub:{id:"172" topic:"usryCGGK9FaIwc" no_echo:true head:{key:"mime" value:"\"text/x-drafty\""} content:"{\"txt\":\"What is your gender?MaleFemaleNot Sure\",\"fmt\":[{\"at\":20,\"len\":0,\"tp\":\"ST\",\"key\":null},{\"at\":20,\"len\":0,\"tp\":\"FM\",\"key\":null},{\"at\":24,\"len\":0,\"tp\":\"FM\",\"key\":0},{\"at\":30,\"len\":0,\"tp\":\"FM\",\"key\":1},{\"at\":38,\"len\":0,\"tp\":\"FM\",\"key\":2}],\"ent\":[{\"tp\":\"BN\",\"data\":{\"mime\":\"\",\"val\":\"user click male\",\"url\":\"\",\"ref\":\"\",\"width\":null,\"height\":null,\"name\":\"male\",\"size\":null,\"act\":\"\"}},{\"tp\":\"BN\",\"data\":{\"mime\":\"\",\"val\":\"user click female\",\"url\":\"\",\"ref\":\"\",\"width\":null,\"height\":null,\"name\":\"female\",\"size\":null,\"act\":\"\"}},{\"tp\":\"BN\",\"data\":{\"mime\":\"\",\"val\":\"user click NA\",\"url\":\"\",\"ref\":\"\",\"width\":null,\"height\":null,\"name\":\"NA\",\"size\":null,\"act\":\"\"}}]}"} KImjUEfAsz8
+I2023/05/24 11:47:00 in: '{"note":{"topic":"usryvQne-AFwbw","what":"recv","seq":615}}' sid='RiBAJF6LJ30' uid='yCGGK9FaIwc'
+I2023/05/24 11:47:00 unknown info-note.event 
+
+
+
+
+

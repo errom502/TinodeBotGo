@@ -121,7 +121,7 @@ func main() {
 	b.BotResponse(bot)
 	bot.BotResponse = b.IBotResponse
 	ctx, _ := context.WithCancel(context.Background())
-	bot.Start(ctx)
+	bot.Start(ctx, bot)
 
 	wg := &sync.WaitGroup{}
 	wg.Add(1)

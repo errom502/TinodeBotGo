@@ -1,0 +1,36 @@
+Логи в сборке tinode при старте бота c#:
+I2023/05/22 14:54:55 grpc: session started jypZbgyEAAA [::1]:54667 1
+I2023/05/22 14:54:55 grpc in: hi:{id:"91" user_agent:"ChatBot/0.18.1 (Microsoft Windows 10.0.19044 X64); gRPC-csharp/0.18.1" ver:"0.18.1" lang:"EN"} jypZbgyEAAA
+I2023/05/22 14:54:55 grpc in: login:{id:"92" scheme:"basic" secret:"alice:alice123"} jypZbgyEAAA
+I2023/05/22 14:54:55 grpc in: sub:{id:"93" topic:"me"} jypZbgyEAAA
+I2023/05/22 14:54:55 grpc in: get:{id:"94" topic:"me"} jypZbgyEAAA
+W2023/05/22 14:54:55 s.get: invalid Get message action 
+
+При отправке сообщения 
+1 раз
+I2023/05/22 14:57:06 in: '{"get":{"id":"109714","topic":"usryvQne-AFwbw","what":"desc"}}' sid='IOED1NskDDg' uid='yCGGK9FaIwc'
+I2023/05/22 14:57:17 in: '{"sub":{"id":"109716","topic":"usryvQne-AFwbw"}}' sid='IOED1NskDDg' uid='yCGGK9FaIwc'
+I2023/05/22 14:57:17 in: '{"pub":{"id":"109715","topic":"usryvQne-AFwbw","noecho":true,"content":"more"}}' sid='IOED1NskDDg' uid='yCGGK9FaIwc'
+I2023/05/22 14:57:17 grpc in: sub:{id:"95" topic:"usryCGGK9FaIwc"} jypZbgyEAAA
+I2023/05/22 14:57:17 grpc in: get:{id:"96" topic:"me"} jypZbgyEAAA
+W2023/05/22 14:57:17 s.get: invalid Get message action 
+
+
+
+
+2 раз
+I2023/05/22 14:58:28 in: '{"note":{"topic":"usryvQne-AFwbw","what":"recv","seq":510}}' sid='IOED1NskDDg' uid='yCGGK9FaIwc'
+I2023/05/22 14:58:28 unknown info-note.event 
+I2023/05/22 14:58:29 in: '{"note":{"topic":"usryvQne-AFwbw","what":"read","seq":510}}' sid='IOED1NskDDg' uid='yCGGK9FaIwc'
+I2023/05/22 14:58:29 unknown info-note.event 
+I2023/05/22 14:58:30 in: '{"note":{"topic":"usryvQne-AFwbw","what":"kp"}}' sid='IOED1NskDDg' uid='yCGGK9FaIwc'
+I2023/05/22 14:58:30 unknown info-note.event 
+
+
+form:
+I2023/05/24 11:48:12 unknown info-note.event 
+I2023/05/24 11:48:12 grpc in: pub:{id:"925" topic:"usryCGGK9FaIwc" no_echo:true head:{key:"mime" value:"\"text/x-drafty\""} content:"{\"txt\":\"What's your gender?MaleFemaleNot Sure\",\"fmt\":[{\"at\":0,\"len\":19,\"tp\":\"ST\"},{\"at\":0,\"len\":19,\"tp\":\"FM\"},{\"at\":19,\"len\":4,\"key\":0},{\"at\":23,\"len\":6,\"key\":1},{\"at\":29,\"len\":8,\"key\":2}],\"ent\":[{\"tp\":\"BN\",\"data\":{\"val\":\"user click male\",\"name\":\"male\",\"act\":\"pub\"}},{\"tp\":\"BN\",\"data\":{\"val\":\"user click female\",\"name\":\"female\",\"act\":\"pub\"}},{\"tp\":\"BN\",\"data\":{\"val\":\"user click NA\",\"name\":\"NA\",\"act\":\"pub\"}}]}"} K5fGVm3OkY8
+I2023/05/24 11:48:12 in: '{"note":{"topic":"usryvQne-AFwbw","what":"recv","seq":618}}' sid='AZVEFkqJT0Q' uid='yCGGK9FaIwc'
+I2023/05/24 11:48:12 unknown info-note.event 
+I2023/05/24 11:48:12 in: '{"note":{"topic":"usryvQne-AFwbw","what":"read","seq":618}}' sid='AZVEFkqJT0Q' uid='yCGGK9FaIwc'
+I2023/05/24 11:48:12 unknown info-note.event 
